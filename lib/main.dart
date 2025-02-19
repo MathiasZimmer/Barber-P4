@@ -24,9 +24,9 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Supabase.initialize(
-    url: 'https://tmsbjcljgoxelrkmcicg.supabase.co',
+    url: 'https://hguueqkvvtfsrcwybqmk.supabase.co',
     anonKey:
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRtc2JqY2xqZ294ZWxya21jaWNnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzk5NTU1NjUsImV4cCI6MjA1NTUzMTU2NX0.d1NebwV6YXsvicrUBAMU5I4FwD0WWYL0BknmgAIN2nI',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhndXVlcWt2dnRmc3Jjd3licW1rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzk5NzQ2NjUsImV4cCI6MjA1NTU1MDY2NX0.EeEoLm-I_kPaZkzSQy1rDz3da3Zs9fyWLwQkYElN8HM',
   );
 
   runApp(MyApp());

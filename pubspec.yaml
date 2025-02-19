@@ -37,6 +37,7 @@ dependencies:
   supabase_flutter: ^2.8.3
   intl: ^0.20.2
   flutter_rating_bar: ^4.0.1
+  shadcn_ui: ^0.0.0
 
 dev_dependencies:
   flutter_test:
@@ -100,3 +101,5 @@ flutter:
     - assets/barber1.jpg
     - assets/barber2.jpg
     - assets/background.jpg
+    - assets/beard.jpg
+    - assets/kids_cut.jpg

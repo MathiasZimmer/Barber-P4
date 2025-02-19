@@ -27,23 +27,26 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
-        title: Row(
-          children: const [
-            Text(
-              'SALON LAURA',
-              style: TextStyle(
-                letterSpacing: 0.8,
-                fontSize: 15,
+        title: Padding(
+          padding: const EdgeInsets.only(left: 8.0),
+          child: Row(
+            children: const [
+              Text(
+                'SALON LAURA',
+                style: TextStyle(
+                  letterSpacing: 0.8,
+                  fontSize: 15,
+                  color: Color.fromARGB(153, 224, 224, 224),
+                ),
+              ),
+              SizedBox(width: 4),
+              Icon(
+                Icons.content_cut,
+                size: 16,
                 color: Color.fromARGB(153, 224, 224, 224),
               ),
-            ),
-            SizedBox(width: 4),
-            Icon(
-              Icons.content_cut,
-              size: 16,
-              color: Color.fromARGB(153, 224, 224, 224),
-            ),
-          ],
+            ],
+          ),
         ),
         centerTitle: false,
         titleSpacing: 0,
@@ -104,18 +107,12 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),*/
                       const SizedBox(height: 10),
-                      Text(
-                        'Få et nyt look med Salon Laura',
-                        style: Theme.of(
-                          context,
-                        ).textTheme.titleMedium?.copyWith(color: Colors.white),
-                      ),
                     ],
                   ),
                 ),
               ],
             ),
-            Container(
+            /*Container(
               margin: const EdgeInsets.all(24.0),
               padding: const EdgeInsets.all(24.0),
               color: AppColors.black.withAlpha(180),
@@ -127,20 +124,29 @@ class _HomeScreenState extends State<HomeScreen> {
                   context,
                 ).textTheme.bodyLarge?.copyWith(color: Colors.white),
               ),
-            ),
+            ),*/
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Column(
                 children: const [
                   ServiceCard(
-                    title: 'Hårklipning',
-                    description:
-                        'Præcis og moderne hårklipning til enhver stil.',
+                    title: 'SKINFADE',
+                    description: 'Skinfade: 250,-\nMed skæg: 300,-',
                     imagePath: 'assets/fade.jpg',
                   ),
                   ServiceCard(
-                    title: 'Styling',
-                    description: 'Professionel styling til enhver lejlighed.',
+                    title: 'SKÆG',
+                    description: 'Skæg: 100,-\nMed Lineup: 150,-',
+                    imagePath: 'assets/beard.jpg',
+                  ),
+                  ServiceCard(
+                    title: 'BØRNEKLIP',
+                    description: 'Børneklip: 150,-\nSkinfade: 200,-',
+                    imagePath: 'assets/kids_cut.jpg',
+                  ),
+                  ServiceCard(
+                    title: 'HERREKLIP',
+                    description: 'Herreklip: 200,-\nMed skæg: 250,-',
                     imagePath: 'assets/styling.jpg',
                   ),
                 ],
