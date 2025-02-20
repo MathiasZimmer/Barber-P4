@@ -1,7 +1,14 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'user_service.dart';
 
 class BookingService {
+  static final BookingService _instance = BookingService._internal();
+  factory BookingService() => _instance;
+  BookingService._internal();
+
   final SupabaseClient client = Supabase.instance.client;
+  // Add a map to store mock bookings
+  final Map<String, List<Map<String, dynamic>>> _mockBookings = {};
 
   /// Checks if a given time slot is available for a barber.
   Future<bool> isTimeSlotAvailable({
@@ -32,11 +39,29 @@ class BookingService {
     required DateTime endTime,
   }) async {
     try {
-      // Simulate network delay
-      await Future.delayed(const Duration(milliseconds: 500));
+      print('DEBUG: Creating appointment for user: $userId');
+      print('DEBUG: Current mock bookings before: $_mockBookings');
 
-      // For mock data, we'll just simulate success
-      // No actual database call needed
+      if (!_mockBookings.containsKey(userId)) {
+        _mockBookings[userId] = [];
+      }
+
+      _mockBookings[userId]!.add({
+        'id': DateTime.now().millisecondsSinceEpoch.toString(),
+        'barber_id': barberId,
+        'start_time': startTime.toIso8601String(),
+        'end_time': endTime.toIso8601String(),
+        'barbers': {
+          'name':
+              barberId == '7d9fb269-b171-49c5-93ef-7097a99e02e3'
+                  ? 'Frisør 1'
+                  : 'Frisør 2',
+        },
+      });
+
+      print('DEBUG: Current mock bookings after: $_mockBookings');
+
+      await Future.delayed(const Duration(milliseconds: 500));
       return;
     } catch (e) {
       print('Booking error details: $e');
@@ -45,30 +70,9 @@ class BookingService {
   }
 
   /// Gets all appointments for a user
-  Future<List<Map<String, dynamic>>> getUserAppointments(String userId) async {
-    try {
-      final response = await client
-          .from('appointments')
-          .select('''
-            *,
-            barbers (
-              name,
-              profile_image
-            ),
-            services (
-              name,
-              duration,
-              price
-            )
-          ''')
-          .eq('user_id', userId)
-          .order('start_time');
-
-      return List<Map<String, dynamic>>.from(response);
-    } catch (e) {
-      throw Exception('Error fetching appointments: $e');
-    }
-  }
+  // Future<List<Map<String, dynamic>>> getUserAppointments(String userId) async {
+  // ...
+  // }
 
   /// Cancels an appointment
   Future<void> cancelAppointment(String appointmentId) async {
@@ -144,6 +148,43 @@ class BookingService {
       return availableSlots;
     } catch (e) {
       throw Exception('Error generating time slots: $e');
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getUserBookings(String userId) async {
+    try {
+      print('Fetching bookings for user: $userId'); // Debug print
+      final bookings = _mockBookings[userId] ?? [];
+      print('Found bookings: ${bookings.length}'); // Debug print
+      print('All mock bookings: $_mockBookings'); // Debug print
+
+      return bookings.map((booking) {
+        return {
+          'id': booking['id'],
+          'barber_id': booking['barber_id'],
+          'barber_name': booking['barbers']['name'],
+          'start_time': DateTime.parse(booking['start_time']),
+          'end_time': DateTime.parse(booking['end_time']),
+        };
+      }).toList();
+    } catch (e) {
+      print('Error in getUserBookings: $e'); // Debug print
+      throw 'Could not load bookings: $e';
+    }
+  }
+
+  Future<void> cancelBooking(String bookingId) async {
+    try {
+      // Remove from mock bookings
+      final currentUser = UserService().currentUserId;
+      if (currentUser != null && _mockBookings.containsKey(currentUser)) {
+        _mockBookings[currentUser]!.removeWhere(
+          (booking) => booking['id'] == bookingId,
+        );
+      }
+      await Future.delayed(const Duration(milliseconds: 500)); // Mock delay
+    } catch (e) {
+      throw 'Could not cancel booking: $e';
     }
   }
 }

@@ -7,7 +7,10 @@ import 'screens/barber_profile_screen.dart';
 import 'screens/booking_screen.dart';
 import 'screens/booking_confirmation_screen.dart';
 import 'screens/user_profile_screen.dart';
+import 'screens/login_screen.dart';
 import 'widgets/background_wrapper.dart';
+import 'theme/app_theme.dart';
+import 'services/user_service.dart';
 
 // Add color scheme constants
 class AppColors {
@@ -28,8 +31,9 @@ void main() async {
     anonKey:
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhndXVlcWt2dnRmc3Jjd3licW1rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzk5NzQ2NjUsImV4cCI6MjA1NTU1MDY2NX0.EeEoLm-I_kPaZkzSQy1rDz3da3Zs9fyWLwQkYElN8HM',
   );
+  await UserService().initSession(); // Initialize user session
 
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -39,51 +43,11 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Barbershop App',
-      theme: ThemeData(
-        primaryColor: AppColors.black,
-        scaffoldBackgroundColor: Colors.white,
-        fontFamily: 'sans-serif', // Use system sans-serif font
-        appBarTheme: const AppBarTheme(
-          backgroundColor: AppColors.black,
-          elevation: 0,
-          foregroundColor: Colors.white,
-          titleTextStyle: TextStyle(
-            fontFamily: 'sans-serif',
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.gold,
-            foregroundColor: Colors.black,
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-        ),
-        cardTheme: CardTheme(
-          color: Colors.white,
-          elevation: 2,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        ),
-        textTheme: const TextTheme(
-          titleLarge: TextStyle(
-            color: AppColors.black,
-            fontWeight: FontWeight.bold,
-          ),
-          titleMedium: TextStyle(
-            color: AppColors.grey,
-            fontWeight: FontWeight.w600,
-          ),
-          bodyLarge: TextStyle(color: AppColors.black),
-          bodyMedium: TextStyle(color: AppColors.grey),
-        ),
-      ),
+      theme: AppTheme.theme, // Use global theme
       initialRoute: '/',
       routes: {
         '/': (context) => BackgroundWrapper(child: HomeScreen()),
+        '/login': (context) => BackgroundWrapper(child: LoginScreen()),
         '/barber_list':
             (context) => BackgroundWrapper(child: BarberListScreen()),
         '/barber_profile':

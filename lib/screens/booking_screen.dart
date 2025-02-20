@@ -2,6 +2,8 @@
 import 'package:flutter/material.dart';
 import '../services/booking_service.dart';
 import '../main.dart';
+import '../models/service.dart';
+import '../theme/app_theme.dart';
 
 class BookingScreen extends StatefulWidget {
   const BookingScreen({super.key});
@@ -13,13 +15,14 @@ class BookingScreen extends StatefulWidget {
 class _BookingScreenState extends State<BookingScreen> {
   final BookingService _bookingService = BookingService();
   DateTime selectedDate = DateTime.now();
-  DateTime? selectedTime;
   String? selectedBarberId;
+  String? selectedServiceId;
+  ServiceOption? selectedOption;
+  DateTime? selectedTime;
   List<DateTime> availableSlots = [];
   bool isLoading = false;
 
   final String currentUserId = 'user123';
-  final String selectedServiceId = 'haircut-service'; // Simple mock ID
   final int serviceDuration = 30;
 
   // Add barber data with actual Supabase IDs
@@ -48,18 +51,29 @@ class _BookingScreenState extends State<BookingScreen> {
     if (!mounted || selectedBarberId == null) return;
     setState(() => isLoading = true);
     try {
-      availableSlots = await _bookingService.getAvailableTimeSlots(
+      List<DateTime> slots = await _bookingService.getAvailableTimeSlots(
         barberId: selectedBarberId!,
         date: selectedDate,
         serviceDuration: serviceDuration,
       );
+
+      // Filter out past time slots if the selected date is today
+      if (selectedDate.year == DateTime.now().year &&
+          selectedDate.month == DateTime.now().month &&
+          selectedDate.day == DateTime.now().day) {
+        final now = DateTime.now();
+        // Add 30 minutes buffer
+        final bufferTime = now.add(const Duration(minutes: 30));
+        slots = slots.where((slot) => slot.isAfter(bufferTime)).toList();
+      }
+
+      setState(() => availableSlots = slots);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Error loading time slots: $e')));
     }
-    if (!mounted) return;
     setState(() => isLoading = false);
   }
 
@@ -118,16 +132,7 @@ class _BookingScreenState extends State<BookingScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.transparent,
-      appBar: AppBar(
-        title: const Text(
-          'BOOK TID',
-          style: TextStyle(
-            letterSpacing: 0.8,
-            fontSize: 15,
-            color: Color.fromARGB(153, 224, 224, 224),
-          ),
-        ),
-      ),
+      appBar: AppBar(title: Text('BOOK TID', style: AppTheme.appBarTitleStyle)),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -135,14 +140,7 @@ class _BookingScreenState extends State<BookingScreen> {
           children: [
             Container(
               padding: const EdgeInsets.all(16.0),
-              decoration: BoxDecoration(
-                color: AppColors.black.withAlpha(180),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: AppColors.gold.withAlpha(150),
-                  width: 1.5,
-                ),
-              ),
+              decoration: AppTheme.goldBorderContainer,
               child: Column(
                 children: [
                   Text(
@@ -168,22 +166,18 @@ class _BookingScreenState extends State<BookingScreen> {
                                   setState(() {
                                     selectedBarberId = barber['id'];
                                     selectedTime = null;
-                                    loadAvailableSlots();
                                   });
+                                  _showServiceSelectionDialog();
+                                  loadAvailableSlots();
                                 },
                                 child: Column(
                                   children: [
                                     Container(
-                                      decoration: BoxDecoration(
-                                        border: Border.all(
-                                          color:
-                                              isSelected
-                                                  ? AppColors.gold
-                                                  : Colors.transparent,
-                                          width: 2,
-                                        ),
-                                        borderRadius: BorderRadius.circular(45),
-                                      ),
+                                      decoration:
+                                          isSelected
+                                              ? AppTheme.selectedBarberContainer
+                                              : AppTheme
+                                                  .unselectedBarberContainer,
                                       child: CircleAvatar(
                                         radius: 45,
                                         backgroundImage: AssetImage(
@@ -194,21 +188,15 @@ class _BookingScreenState extends State<BookingScreen> {
                                     const SizedBox(height: 8),
                                     Text(
                                       barber['name'],
-                                      style: TextStyle(
-                                        color:
-                                            isSelected
-                                                ? AppColors.gold
-                                                : Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14,
-                                      ),
+                                      style:
+                                          isSelected
+                                              ? AppTheme.selectedBarberNameStyle
+                                              : AppTheme
+                                                  .unselectedBarberNameStyle,
                                     ),
                                     Text(
                                       barber['specialty'],
-                                      style: TextStyle(
-                                        color: Colors.white.withAlpha(179),
-                                        fontSize: 11,
-                                      ),
+                                      style: AppTheme.barberSpecialtyStyle,
                                       textAlign: TextAlign.center,
                                     ),
                                   ],
@@ -295,14 +283,10 @@ class _BookingScreenState extends State<BookingScreen> {
                             availableSlots.map((time) {
                               final isSelected = selectedTime == time;
                               return ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor:
-                                      isSelected
-                                          ? AppColors.gold
-                                          : AppColors.black,
-                                  foregroundColor:
-                                      isSelected ? Colors.black : Colors.white,
-                                ),
+                                style:
+                                    isSelected
+                                        ? AppTheme.selectedTimeSlotButtonStyle
+                                        : AppTheme.timeSlotButtonStyle,
                                 onPressed:
                                     () => setState(() => selectedTime = time),
                                 child: Text(
@@ -318,17 +302,36 @@ class _BookingScreenState extends State<BookingScreen> {
                 Padding(
                   padding: const EdgeInsets.only(top: 24.0),
                   child: Center(
-                    child: ElevatedButton.icon(
-                      onPressed: isLoading ? null : proceedToConfirmation,
-                      icon: const Icon(Icons.content_cut, size: 16),
-                      label: Text(
-                        isLoading ? 'Behandler...' : 'BEKRÆFT',
-                        style: const TextStyle(fontSize: 14),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.gold,
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 12,
+                      child: ElevatedButton.icon(
+                        style: AppTheme.goldButtonStyle,
+                        onPressed:
+                            isLoading
+                                ? null
+                                : () {
+                                  proceedToConfirmation();
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Tid booket: ${selectedTime!.day}/${selectedTime!.month} kl. ${selectedTime!.hour}:${selectedTime!.minute.toString().padLeft(2, '0')}',
+                                      ),
+                                      action: SnackBarAction(
+                                        label: 'Fortryd',
+                                        onPressed: () {
+                                          // Handle undo action
+                                        },
+                                      ),
+                                    ),
+                                  );
+                                },
+                        icon: const Icon(Icons.content_cut, size: 16),
+                        label: Text(
+                          isLoading ? 'Behandler...' : 'BEKRÆFT',
+                          style: const TextStyle(fontSize: 14),
                         ),
                       ),
                     ),
@@ -338,6 +341,97 @@ class _BookingScreenState extends State<BookingScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  void _showOptionsDialog(Service service) {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            backgroundColor: AppColors.black,
+            title: Text(
+              'Tilføj Option',
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(color: Colors.white),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  title: Text(
+                    'Uden tilvalg: ${service.price},-',
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                  onTap: () {
+                    setState(() => selectedOption = null);
+                    Navigator.pop(context);
+                  },
+                ),
+                ...service.options!.map(
+                  (option) => ListTile(
+                    title: Text(
+                      '${option.name}: +${option.additionalPrice},-',
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                    onTap: () {
+                      setState(() => selectedOption = option);
+                      Navigator.pop(context);
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+    );
+  }
+
+  void _showServiceSelectionDialog() {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            backgroundColor: AppColors.black,
+            title: Text(
+              'Vælg Service',
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(color: Colors.white),
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children:
+                    services.map((service) {
+                      return Column(
+                        children: [
+                          ListTile(
+                            title: Text(
+                              '${service.name}: ${service.price},-',
+                              style: const TextStyle(color: Colors.white),
+                            ),
+                            onTap: () {
+                              setState(() {
+                                selectedServiceId = service.id;
+                                selectedOption = null;
+                              });
+                              // Show options dialog if service has options
+                              if (service.options != null) {
+                                Navigator.pop(context);
+                                _showOptionsDialog(service);
+                              } else {
+                                Navigator.pop(context);
+                              }
+                            },
+                          ),
+                          Divider(color: AppColors.gold.withAlpha(100)),
+                        ],
+                      );
+                    }).toList(),
+              ),
+            ),
+          ),
     );
   }
 }

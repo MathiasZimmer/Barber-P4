@@ -215,6 +215,18 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
+      floatingActionButton: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: AppColors.gold.withAlpha(970),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: IconButton(
+          icon: const Icon(Icons.person, color: AppColors.grey, size: 20),
+          onPressed: () => Navigator.pushNamed(context, '/login'),
+        ),
+      ),
     );
   }
 }
