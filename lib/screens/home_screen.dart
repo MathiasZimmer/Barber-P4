@@ -2,6 +2,8 @@
 import 'package:flutter/material.dart';
 import '../main.dart';
 import '../widgets/service_card.dart';
+import 'package:provider/provider.dart';
+import '../services/user_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -224,7 +226,14 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         child: IconButton(
           icon: const Icon(Icons.person, color: AppColors.grey, size: 20),
-          onPressed: () => Navigator.pushNamed(context, '/login'),
+          onPressed: () {
+            final userService = context.read<UserService>();
+            if (userService.isLoggedIn) {
+              Navigator.pushNamed(context, '/user_profile');
+            } else {
+              Navigator.pushNamed(context, '/login');
+            }
+          },
         ),
       ),
     );

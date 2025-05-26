@@ -4,6 +4,7 @@ import '../services/booking_service.dart';
 import '../main.dart';
 import '../models/service.dart';
 import '../theme/app_theme.dart';
+import '../services/user_service.dart';
 
 class BookingScreen extends StatefulWidget {
   const BookingScreen({super.key});
@@ -13,7 +14,7 @@ class BookingScreen extends StatefulWidget {
 }
 
 class _BookingScreenState extends State<BookingScreen> {
-  final BookingService _bookingService = BookingService();
+  final BookingService _bookingService = BookingService(UserService());
   DateTime selectedDate = DateTime.now();
   String? selectedBarberId;
   String? selectedServiceId;
@@ -25,7 +26,6 @@ class _BookingScreenState extends State<BookingScreen> {
   final String currentUserId = 'user123';
   final int serviceDuration = 30;
 
-  // Add barber data with actual Supabase IDs
   final List<Map<String, dynamic>> barbers = [
     {
       'id': '7d9fb269-b171-49c5-93ef-7097a99e02e3',
@@ -54,8 +54,11 @@ class _BookingScreenState extends State<BookingScreen> {
       List<DateTime> slots = await _bookingService.getAvailableTimeSlots(
         barberId: selectedBarberId!,
         date: selectedDate,
-        serviceDuration: serviceDuration,
+        serviceDurationMinutes: serviceDuration,
       );
+
+      // Add debug print to check if slots are being returned
+      print('Available slots: $slots');
 
       // Filter out past time slots if the selected date is today
       if (selectedDate.year == DateTime.now().year &&
@@ -63,7 +66,7 @@ class _BookingScreenState extends State<BookingScreen> {
           selectedDate.day == DateTime.now().day) {
         final now = DateTime.now();
         // Add 30 minutes buffer
-        final bufferTime = now.add(const Duration(minutes: 30));
+        final bufferTime = now.add(const Duration(minutes: 60));
         slots = slots.where((slot) => slot.isAfter(bufferTime)).toList();
       }
 
@@ -144,7 +147,7 @@ class _BookingScreenState extends State<BookingScreen> {
               child: Column(
                 children: [
                   Text(
-                    'Vælg Barber',
+                    'Vælg Frisør',
                     style: Theme.of(
                       context,
                     ).textTheme.titleLarge?.copyWith(color: Colors.white),
@@ -230,11 +233,43 @@ class _BookingScreenState extends State<BookingScreen> {
                       ).textTheme.titleLarge?.copyWith(color: Colors.white),
                     ),
                     const SizedBox(height: 16),
-                    ElevatedButton.icon(
+                    ElevatedButton(
+                      // Apply your chosen style. Let's use a modified goldButtonStyle for this example,
+                      // or use the new datePickerButtonStyle if you created one.
+                      style: AppTheme.goldButtonStyle.copyWith(
+                        backgroundColor: WidgetStateProperty.all(
+                          AppColors.grey.withOpacity(0.8),
+                        ),
+                        foregroundColor: WidgetStateProperty.all(Colors.white),
+                        padding: WidgetStateProperty.all(
+                          const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                        ), // Custom padding
+                      ),
                       onPressed: () => _selectDate(context),
-                      icon: const Icon(Icons.calendar_today),
-                      label: Text(
-                        '${selectedDate.day}/${selectedDate.month}/${selectedDate.year}',
+                      child: Row(
+                        mainAxisSize:
+                            MainAxisSize
+                                .min, // Crucial: makes the Row only as wide as its content
+                        mainAxisAlignment:
+                            MainAxisAlignment
+                                .center, // Center content if button is wider
+                        children: <Widget>[
+                          const Icon(
+                            Icons.calendar_today,
+                            size: 18, // Adjust icon size as needed
+                            // Color will be inherited from button's foregroundColor
+                          ),
+                          const SizedBox(
+                            width: 8,
+                          ), // Adjust spacing between icon and text
+                          Text(
+                            '${selectedDate.day}/${selectedDate.month}/${selectedDate.year}',
+                            // Text style will be inherited from the button's textStyle
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -307,7 +342,7 @@ class _BookingScreenState extends State<BookingScreen> {
                         color: AppColors.gold,
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: ElevatedButton.icon(
+                      child: ElevatedButton(
                         style: AppTheme.goldButtonStyle,
                         onPressed:
                             isLoading
@@ -328,8 +363,7 @@ class _BookingScreenState extends State<BookingScreen> {
                                     ),
                                   );
                                 },
-                        icon: const Icon(Icons.content_cut, size: 16),
-                        label: Text(
+                        child: Text(
                           isLoading ? 'Behandler...' : 'BEKRÆFT',
                           style: const TextStyle(fontSize: 14),
                         ),

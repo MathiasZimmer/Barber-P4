@@ -1,6 +1,7 @@
 // lib/screens/booking_confirmation_screen.dart
 import 'package:flutter/material.dart';
-import '../main.dart';
+import 'package:provider/provider.dart'; // Make sure this is imported
+import '../main.dart'; // For AppColors if used
 import '../services/booking_service.dart';
 import '../services/user_service.dart';
 import '../theme/app_theme.dart';
@@ -17,10 +18,13 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen>
     with SingleTickerProviderStateMixin {
   final _guestFormKey = GlobalKey<FormState>();
   final _userFormKey = GlobalKey<FormState>();
-  String? _email;
-  String? _phone;
-  String? _name;
-  String? _password;
+
+  // State variables to hold form data
+  // These will be populated by the onSaved callbacks of TextFormFields
+  String? _name; // For both guest name and new user name
+  String? _email; // For new user email (and optionally guest email)
+  String? _password; // For new user password
+
   bool _isLoading = false;
   late TabController _tabController;
   int _currentIndex = 0;
@@ -30,28 +34,45 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen>
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _tabController.addListener(() {
-      setState(() {
-        _currentIndex = _tabController.index;
-      });
+      if (mounted && _tabController.indexIsChanging ||
+          _tabController.index != _currentIndex) {
+        setState(() {
+          _currentIndex = _tabController.index;
+        });
+      }
     });
   }
 
   @override
   void dispose() {
+    _tabController.removeListener(() {});
     _tabController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final isLoggedIn = UserService().isLoggedIn;
-    final args =
-        ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+    // Access userService via Provider to get the correct isLoggedIn state
+    final userService = context.watch<UserService>();
+    final isLoggedIn =
+        userService.isLoggedIn; // Use the Provider-managed instance
+
+    final routeArgs = ModalRoute.of(context)?.settings.arguments;
+    if (routeArgs == null || routeArgs is! Map<String, dynamic>) {
+      // Handle missing arguments, perhaps by navigating back or showing an error
+      return Scaffold(
+        appBar: AppBar(title: Text('Fejl')),
+        body: Center(child: Text('Booking detaljer mangler.')),
+      );
+    }
+    final args = routeArgs; // No cast needed due to the check above
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppColors.darkGrey, // Or from your theme
       appBar: AppBar(
         title: Text('BEKRÆFT BOOKING', style: AppTheme.appBarTitleStyle),
+        backgroundColor: AppColors.black,
+        elevation: 0,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -64,7 +85,10 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Booking Detaljer:', style: AppTheme.titleStyle),
+                  Text(
+                    'Booking Detaljer:',
+                    style: AppTheme.titleStyle.copyWith(color: Colors.white),
+                  ),
                   const SizedBox(height: 16),
                   Row(
                     children: [
@@ -74,14 +98,15 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen>
                             color: AppColors.gold.withAlpha(150),
                             width: 1.5,
                           ),
-                          borderRadius: BorderRadius.circular(35),
+                          shape:
+                              BoxShape.circle, // Ensure circle shape for avatar
                         ),
                         child: CircleAvatar(
                           radius: 35,
                           backgroundImage: AssetImage(
                             args['barberId'] ==
                                     '7d9fb269-b171-49c5-93ef-7097a99e02e3'
-                                ? 'assets/barber1.jpg'
+                                ? 'assets/barber1.jpg' // Ensure these assets exist
                                 : 'assets/barber2.jpg',
                           ),
                         ),
@@ -92,16 +117,19 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Barber: ${args['barberName']}',
-                              style: const TextStyle(color: Colors.white),
+                              'Frisør: ${args['barberName'] ?? 'N/A'}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                             Text(
-                              'Dato: ${args['date'].day}/${args['date'].month}/${args['date'].year}',
-                              style: const TextStyle(color: Colors.white),
+                              'Dato: ${(args['date'] as DateTime).day}/${(args['date'] as DateTime).month}/${(args['date'] as DateTime).year}',
+                              style: const TextStyle(color: Colors.white70),
                             ),
                             Text(
-                              'Tid: ${(args['time'] as DateTime).hour}:${(args['time'] as DateTime).minute.toString().padLeft(2, '0')}',
-                              style: const TextStyle(color: Colors.white),
+                              'Tid: ${(args['time'] as DateTime).hour.toString().padLeft(2, '0')}:${(args['time'] as DateTime).minute.toString().padLeft(2, '0')}',
+                              style: const TextStyle(color: Colors.white70),
                             ),
                           ],
                         ),
@@ -116,108 +144,55 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen>
               Container(
                 padding: const EdgeInsets.all(16.0),
                 decoration: AppTheme.goldBorderContainer,
-                child: DefaultTabController(
-                  length: 2,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Kontakt Information:', style: AppTheme.titleStyle),
-                      const SizedBox(height: 16),
-                      TabBar(
-                        controller: _tabController,
-                        tabs: const [
-                          Tab(text: 'GÆST'),
-                          Tab(text: 'OPRET BRUGER'),
-                        ],
-                        labelColor: AppColors.gold,
-                        unselectedLabelColor: Colors.white,
-                        indicatorColor: AppColors.gold,
-                      ),
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        height: _currentIndex == 0 ? 140 : 200,
-                        child: TabBarView(
-                          controller: _tabController,
-                          children: [
-                            // Guest Tab
-                            Form(
+                child: Column(
+                  // Removed DefaultTabController, _tabController is managed by state
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Kontakt Information:',
+                      style: AppTheme.titleStyle.copyWith(color: Colors.white),
+                    ),
+                    const SizedBox(height: 16),
+                    TabBar(
+                      controller: _tabController,
+                      tabs: const [
+                        Tab(text: 'GÆST'),
+                        Tab(text: 'OPRET BRUGER'),
+                      ],
+                      labelStyle: TextStyle(fontWeight: FontWeight.bold),
+                      labelColor: AppColors.gold,
+                      unselectedLabelColor: Colors.white70,
+                      indicatorColor: AppColors.gold,
+                      indicatorWeight: 3,
+                    ),
+                    const SizedBox(height: 16),
+                    AnimatedSize(
+                      // For smooth height transition
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                      child: IndexedStack(
+                        // Use IndexedStack for better performance with TabBarView
+                        index: _currentIndex,
+                        children: [
+                          // Guest Tab (index 0)
+                          Visibility(
+                            // Ensures form state is preserved
+                            visible: _currentIndex == 0,
+                            maintainState: true,
+                            child: Form(
                               key: _guestFormKey,
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   TextFormField(
-                                    decoration: const InputDecoration(
-                                      labelText: 'Navn',
-                                      labelStyle: TextStyle(
-                                        color: Colors.white70,
-                                      ),
-                                      enabledBorder: UnderlineInputBorder(
-                                        borderSide: BorderSide(
-                                          color: Colors.white70,
-                                        ),
-                                      ),
+                                    decoration: AppTheme.inputDecoration(
+                                      'Navn*',
                                     ),
                                     style: const TextStyle(color: Colors.white),
-                                    onSaved: (value) => _email = value,
+                                    onSaved: (value) => _name = value?.trim(),
                                     validator: (value) {
-                                      if (_phone?.isNotEmpty ?? false) {
-                                        return null;
-                                      }
-                                      if (value?.isEmpty ?? true) {
-                                        return 'Indtast venligst email eller telefonnummer';
-                                      }
-                                      return null;
-                                    },
-                                  ),
-                                  const SizedBox(height: 8),
-                                  TextFormField(
-                                    decoration: const InputDecoration(
-                                      labelText: 'Telefon',
-                                      labelStyle: TextStyle(
-                                        color: Colors.white70,
-                                      ),
-                                      enabledBorder: UnderlineInputBorder(
-                                        borderSide: BorderSide(
-                                          color: Colors.white70,
-                                        ),
-                                      ),
-                                    ),
-                                    style: const TextStyle(color: Colors.white),
-                                    onSaved: (value) => _phone = value,
-                                    validator: (value) {
-                                      if (_email?.isNotEmpty ?? false) {
-                                        return null;
-                                      }
-                                      if (value?.isEmpty ?? true) {
-                                        return 'Indtast venligst email eller telefonnummer';
-                                      }
-                                      return null;
-                                    },
-                                  ),
-                                ],
-                              ),
-                            ),
-                            // Create Account Tab
-                            Form(
-                              key: _userFormKey,
-                              child: Column(
-                                children: [
-                                  TextFormField(
-                                    decoration: const InputDecoration(
-                                      labelText: 'Navn',
-                                      labelStyle: TextStyle(
-                                        color: Colors.white70,
-                                      ),
-                                      enabledBorder: UnderlineInputBorder(
-                                        borderSide: BorderSide(
-                                          color: Colors.white70,
-                                        ),
-                                      ),
-                                    ),
-                                    style: const TextStyle(color: Colors.white),
-                                    onSaved: (value) => _name = value,
-                                    validator: (value) {
-                                      if (value?.isEmpty ?? true) {
+                                      if (value == null ||
+                                          value.trim().isEmpty) {
                                         return 'Indtast venligst dit navn';
                                       }
                                       return null;
@@ -225,25 +200,76 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen>
                                   ),
                                   const SizedBox(height: 8),
                                   TextFormField(
-                                    decoration: const InputDecoration(
-                                      labelText: 'Email',
-                                      labelStyle: TextStyle(
-                                        color: Colors.white70,
-                                      ),
-                                      enabledBorder: UnderlineInputBorder(
-                                        borderSide: BorderSide(
-                                          color: Colors.white70,
-                                        ),
-                                      ),
+                                    decoration: AppTheme.inputDecoration(
+                                      'Email eller Telefon*',
                                     ),
                                     style: const TextStyle(color: Colors.white),
-                                    onSaved: (value) => _email = value,
+                                    onSaved: (value) {
+                                      if (value != null &&
+                                          value.trim().contains('@')) {
+                                        _email =
+                                            value
+                                                .trim(); // Use _email for guest if they provide email
+                                        null;
+                                      } else {
+                                        value?.trim();
+                                        _email =
+                                            null; // Clear _email if phone is provided
+                                      }
+                                    },
                                     validator: (value) {
-                                      if (value?.isEmpty ?? true) {
+                                      if (value == null ||
+                                          value.trim().isEmpty) {
+                                        return 'Indtast email';
+                                      }
+                                      return null;
+                                    },
+                                  ),
+                                  const SizedBox(
+                                    height: 8,
+                                  ), // Add some bottom padding
+                                ],
+                              ),
+                            ),
+                          ),
+                          // Create Account Tab (index 1)
+                          Visibility(
+                            visible: _currentIndex == 1,
+                            maintainState: true,
+                            child: Form(
+                              key: _userFormKey,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  TextFormField(
+                                    decoration: AppTheme.inputDecoration(
+                                      'Navn*',
+                                    ),
+                                    style: const TextStyle(color: Colors.white),
+                                    onSaved: (value) => _name = value?.trim(),
+                                    validator: (value) {
+                                      if (value == null ||
+                                          value.trim().isEmpty) {
+                                        return 'Indtast venligst dit navn';
+                                      }
+                                      return null;
+                                    },
+                                  ),
+                                  const SizedBox(height: 8),
+                                  TextFormField(
+                                    decoration: AppTheme.inputDecoration(
+                                      'Email*',
+                                    ),
+                                    style: const TextStyle(color: Colors.white),
+                                    keyboardType: TextInputType.emailAddress,
+                                    onSaved: (value) => _email = value?.trim(),
+                                    validator: (value) {
+                                      if (value == null ||
+                                          value.trim().isEmpty) {
                                         return 'Indtast venligst din email';
                                       }
-                                      if (!value!.contains('@') ||
-                                          !value.contains('.')) {
+                                      if (!value.trim().contains('@') ||
+                                          !value.trim().contains('.')) {
                                         return 'Indtast venligst en gyldig email';
                                       }
                                       return null;
@@ -251,56 +277,119 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen>
                                   ),
                                   const SizedBox(height: 8),
                                   TextFormField(
-                                    decoration: const InputDecoration(
-                                      labelText: 'Adgangskode',
-                                      labelStyle: TextStyle(
-                                        color: Colors.white70,
-                                      ),
-                                      enabledBorder: UnderlineInputBorder(
-                                        borderSide: BorderSide(
-                                          color: Colors.white70,
-                                        ),
-                                      ),
+                                    decoration: AppTheme.inputDecoration(
+                                      'Adgangskode* (min 6 tegn)',
                                     ),
                                     style: const TextStyle(color: Colors.white),
                                     obscureText: true,
                                     onSaved: (value) => _password = value,
                                     validator: (value) {
-                                      if (value?.isEmpty ?? true) {
+                                      if (value == null || value.isEmpty) {
                                         return 'Indtast venligst en adgangskode';
                                       }
-                                      if (value!.length < 6) {
+                                      if (value.length < 6) {
                                         return 'Adgangskoden skal være mindst 6 tegn';
                                       }
                                       return null;
                                     },
                                   ),
+                                  const SizedBox(
+                                    height: 8,
+                                  ), // Add some bottom padding
                                 ],
                               ),
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ],
             const SizedBox(height: 24),
             Padding(
-              padding: const EdgeInsets.only(top: 24.0),
+              padding: const EdgeInsets.only(top: 16.0, bottom: 16.0),
               child: Center(
-                child: ElevatedButton.icon(
-                  onPressed: _isLoading ? null : _confirmBooking,
-                  icon: const Icon(Icons.content_cut, size: 16),
-                  label: Text(
-                    _isLoading ? 'Behandler...' : 'BEKRÆFT',
-                    style: const TextStyle(fontSize: 14),
+                child: ElevatedButton(
+                  // Apply your base gold button style
+                  style: AppTheme.goldButtonStyle.copyWith(
+                    // You might want to adjust the padding here slightly if the Row's internal
+                    // spacing is different from what ElevatedButton.icon provides by default.
+                    // Start with the original padding or slightly less horizontal padding.
+                    /*padding: WidgetStateProperty.all(
+                      const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ), // Example: reduced horizontal
+                    ),*/
                   ),
-                  style: AppTheme.goldButtonStyle,
+                  onPressed: _isLoading ? null : _confirmBooking,
+                  child: Row(
+                    mainAxisSize:
+                        MainAxisSize
+                            .min, // Important: Row takes minimum space needed
+                    mainAxisAlignment:
+                        MainAxisAlignment
+                            .center, // Center content within the button
+                    children: <Widget>[
+                      // Conditional Icon or Loading Indicator
+                      _isLoading
+                          ? Container(
+                            width: 18, // Should match icon size approximately
+                            height: 18,
+                            margin: const EdgeInsets.only(
+                              right: 8.0,
+                            ), // Space between loader and text
+                            child: const CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color:
+                                  AppColors
+                                      .black, // Use AppColors.black for consistency
+                            ),
+                          )
+                          : Icon(
+                            Icons.check_circle_outline,
+                            size: 20,
+                            // Color will be inherited from button's foregroundColor (AppColors.black from goldButtonStyle)
+                          ),
+                      // Explicit spacing if not using a loader with margin
+                      if (!_isLoading) const SizedBox(width: 8),
+
+                      // Label Text
+                      Text(
+                        _isLoading ? 'BEHANDLER...' : 'BEKRÆFT BOOKING',
+                        // The style for this text should ideally come from AppTheme.goldButtonStyle.textStyle
+                        // If you override it here, ensure it's intentional.
+                        // style: AppTheme.buttonTextStyle.copyWith(fontWeight: FontWeight.bold), // Example from AppTheme
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
+            // Display error message from UserService if any (e.g. registration failed)
+            if (userService.errorMessage != null &&
+                !isLoggedIn &&
+                _currentIndex == 1)
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: Text(
+                  userService.errorMessage!,
+                  style: const TextStyle(color: Colors.redAccent, fontSize: 13),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            // Display error message from BookingService if any
+            if (context.watch<BookingService>().bookingError != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: Text(
+                  context.watch<BookingService>().bookingError!,
+                  style: const TextStyle(color: Colors.redAccent, fontSize: 13),
+                  textAlign: TextAlign.center,
+                ),
+              ),
           ],
         ),
       ),
@@ -308,70 +397,218 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen>
   }
 
   Future<void> _confirmBooking() async {
-    if (!UserService().isLoggedIn) {
-      if (_currentIndex == 0) {
-        if (!_guestFormKey.currentState!.validate()) return;
-        _guestFormKey.currentState!.save();
-      } else {
-        if (!_userFormKey.currentState!.validate()) return;
-        _userFormKey.currentState!.save();
-        print('Registering user with email: $_email'); // Debug print
-        UserService().registerUser(_email!, _password!, name: _name);
+    if (!mounted) return;
+    final userService = context.read<UserService>();
+    final bookingService = context.read<BookingService>();
+
+    final routeArgs = ModalRoute.of(context)?.settings.arguments;
+    if (routeArgs == null || routeArgs is! Map<String, dynamic>) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Booking detaljer mangler. Prøv igen.')),
+        );
       }
+      return;
     }
+    // final args = routeArgs; // No cast needed here due to the check above
+    // More specific casting for clarity, assuming these keys exist and have these types
+    final String barberId = routeArgs['barberId'] as String;
+    final String? barberName = routeArgs['barberName'] as String?;
+    final DateTime bookingTime = routeArgs['time'] as DateTime;
+    final int serviceDuration = routeArgs['serviceDuration'] as int;
+    final String serviceId =
+        routeArgs['serviceId'] as String? ??
+        'default_service_id'; // Ensure serviceId is passed
 
     setState(() => _isLoading = true);
+    userService.clearError();
+    bookingService.clearBookingError();
 
-    try {
-      final BookingService bookingService = BookingService();
-      final args =
-          ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+    AppUser? bookingUser;
 
-      final userId =
-          UserService().isLoggedIn
-              ? UserService().currentUserId!
-              : (_currentIndex == 0 ? (_email ?? _phone!) : _email!);
-
-      await bookingService.createAppointment(
-        userId: userId,
-        barberId: args['barberId'],
-        serviceId: 'service789',
-        startTime: args['time'],
-        endTime: (args['time'] as DateTime).add(
-          Duration(minutes: args['serviceDuration']),
-        ),
-      );
-
-      print('DEBUG: Created booking for user: $userId'); // Add this
-
-      if (!mounted) return;
-
-      if (_currentIndex == 1) {
-        // Registered user
-        UserService().login(_email!, _password!);
-        Navigator.of(context).pushNamedAndRemoveUntil(
-          '/user_profile',
-          (route) => false,
-          arguments: {'userId': _email},
+    if (!userService.isLoggedIn) {
+      if (_currentIndex == 0) {
+        // Guest Tab
+        if (!_guestFormKey.currentState!.validate()) {
+          setState(() => _isLoading = false);
+          return;
+        }
+        _guestFormKey.currentState!
+            .save(); // Saves to _name, _email (if email provided), _phone
+        print(
+          'BookingConfirmationScreen: Attempting to sign in anonymously for guest booking (Name: $_name)...',
         );
+        bookingUser = await userService.signInAnonymously();
+
+        if (bookingUser == null) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Gæst session fejlede: ${userService.errorMessage ?? 'Prøv igen'}',
+                ),
+              ),
+            );
+          }
+          setState(() => _isLoading = false);
+          return;
+        }
+        print(
+          'BookingConfirmationScreen: Guest signed in anonymously. UID: ${bookingUser.uid}',
+        );
+        // Optionally update anonymous user's display name if _name is provided
+        if (_name != null &&
+            _name!.isNotEmpty &&
+            (bookingUser.displayName == null ||
+                bookingUser.displayName!.isEmpty)) {
+          try {
+            await userService.updateUserDisplayName(
+              _name!,
+            ); // This is a FirebaseAuth.User method
+            // Re-fetch AppUser to get updated displayName if your AppUser doesn't auto-update
+            if (mounted) bookingUser = context.read<UserService>().currentUser;
+            print(
+              'BookingConfirmationScreen: Updated anonymous user display name to: $_name',
+            );
+          } catch (e) {
+            print(
+              'BookingConfirmationScreen: Failed to update anonymous user display name: $e',
+            );
+          }
+        }
       } else {
-        // Guest user
+        // Create Account Tab
+        if (!_userFormKey.currentState!.validate()) {
+          setState(() => _isLoading = false);
+          return;
+        }
+        _userFormKey.currentState!.save(); // Saves to _name, _email, _password
+        print(
+          'BookingConfirmationScreen: Attempting to register user with email: $_email, name: $_name',
+        );
+        // Use the _email, _password, and _name variables that were defined in the State class
+        bool success = await userService.registerUser(
+          _email!,
+          _password!,
+          name: _name,
+        );
+
+        if (!success || userService.currentUser == null) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Registrering fejlede: ${userService.errorMessage ?? 'Prøv igen'}',
+                ),
+              ),
+            );
+          }
+          setState(() => _isLoading = false);
+          return;
+        }
+        bookingUser = userService.currentUser;
+        print(
+          'BookingConfirmationScreen: User registered successfully. UID: ${bookingUser!.uid}',
+        );
+      }
+    } else {
+      bookingUser = userService.currentUser;
+      if (bookingUser == null) {
+        print(
+          'BookingConfirmationScreen: Error - User is logged in but currentUser is null.',
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Fejl: Brugerdata ikke fundet. Prøv at logge ind igen.',
+              ),
+            ),
+          );
+        }
+        setState(() => _isLoading = false);
+        return;
+      }
+      print(
+        'BookingConfirmationScreen: User already logged in. UID: ${bookingUser.uid}',
+      );
+    }
+
+    if (bookingUser == null) {
+      // This is a final safeguard
+      print(
+        'BookingConfirmationScreen: Critical error - bookingUser is null before calling createAppointment.',
+      );
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
-              'Booking bekræftet! Opret en bruger for at se dine bookinger.',
+              'Bruger session kunne ikke etableres. Prøv venligst igen.',
             ),
           ),
         );
-        Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
       }
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Fejl ved booking: $e')));
+      setState(() => _isLoading = false);
+      return;
     }
 
-    setState(() => _isLoading = false);
+    try {
+      print(
+        'BookingConfirmationScreen: Calling createAppointment in BookingService...',
+      );
+      await bookingService.createAppointment(
+        barberId: barberId,
+        barberName: barberName,
+        serviceId: serviceId,
+        startTime: bookingTime,
+        endTime: bookingTime.add(Duration(minutes: serviceDuration)),
+      );
+      print('BookingConfirmationScreen: createAppointment call completed.');
+
+      if (bookingService.bookingError != null) {
+        print(
+          'BookingConfirmationScreen: BookingService reported an error: ${bookingService.bookingError}',
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Booking Fejl: ${bookingService.bookingError}'),
+            ),
+          );
+        }
+      } else {
+        print('BookingConfirmationScreen: Booking appears successful.');
+        if (mounted) {
+          String successMessage = 'Booking bekræftet!';
+          String nextPage = '/user_profile';
+
+          if (bookingUser.isAnonymous) {
+            successMessage =
+                'Booking bekræftet som gæst! Opret en bruger for at gemme dine bookinger.';
+            nextPage = '/';
+          } else if (_currentIndex == 1 && !bookingUser.isAnonymous) {
+            successMessage = 'Bruger oprettet og booking bekræftet!';
+          }
+
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(successMessage)));
+          Navigator.of(context).pushReplacementNamed(nextPage);
+        }
+      }
+    } catch (e) {
+      print(
+        'BookingConfirmationScreen: Exception during booking process: ${e.toString()}',
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Booking undtagelse: ${e.toString()}')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
-}
+} // THIS IS THE END OF THE _BookingConfirmationScreenState CLASS

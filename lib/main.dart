@@ -1,6 +1,5 @@
 // lib/main.dart
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'screens/home_screen.dart';
 import 'screens/barber_list_screen.dart';
 import 'screens/barber_profile_screen.dart';
@@ -11,6 +10,10 @@ import 'screens/login_screen.dart';
 import 'widgets/background_wrapper.dart';
 import 'theme/app_theme.dart';
 import 'services/user_service.dart';
+import 'package:firebase_core/firebase_core.dart' as firebase_core;
+import 'firebase_options.dart';
+import 'package:provider/provider.dart';
+import 'services/booking_service.dart';
 
 // Add color scheme constants
 class AppColors {
@@ -25,15 +28,43 @@ class AppColors {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  await Supabase.initialize(
-    url: 'https://hguueqkvvtfsrcwybqmk.supabase.co',
-    anonKey:
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhndXVlcWt2dnRmc3Jjd3licW1rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzk5NzQ2NjUsImV4cCI6MjA1NTU1MDY2NX0.EeEoLm-I_kPaZkzSQy1rDz3da3Zs9fyWLwQkYElN8HM',
+  await firebase_core.Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
   );
-  await UserService().initSession(); // Initialize user session
 
-  runApp(const MyApp());
+  runApp(
+    MultiProvider(
+      // Use MultiProvider for multiple services
+      providers: [
+        ChangeNotifierProvider(create: (context) => UserService()),
+        // ProxyProvider for BookingService because it depends on UserService
+        ChangeNotifierProxyProvider<UserService, BookingService>(
+          create: (context) {
+            print("MultiProvider: Creating BookingService...");
+            // Initial creation, gets the UserService instance via context.read
+            return BookingService(context.read<UserService>());
+          },
+          update: (context, userService, previousBookingService) {
+            print(
+              "MultiProvider: Updating BookingService. User logged in: ${userService.isLoggedIn}",
+            );
+            // This is called whenever UserService notifies listeners.
+            // We can either create a new BookingService or update the existing one.
+            // If BookingService's constructor and _handleUserChange correctly
+            // re-initialize state based on UserService, creating a new one is simple and safe.
+            return BookingService(userService);
+            //
+            // --- OR --- if you want to reuse the previousBookingService instance:
+            // Ensure BookingService has a method like: void updateUserService(UserService newUserService)
+            // previousBookingService?..updateUserService(userService);
+            // return previousBookingService ?? BookingService(userService);
+          },
+        ),
+        // Add any other global providers here
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -41,10 +72,35 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final userService = context.watch<UserService>();
+    print(
+      "MyApp build: isLoggedIn=${userService.isLoggedIn}, isLoading=${userService.isLoading}, currentUserUID=${userService.currentUser?.uid}, isAnonymous=${userService.currentUser?.isAnonymous}",
+    );
+
+    if (userService.isLoading) {
+      print("MyApp: UserService is loading. Showing initial loading screen.");
+      return MaterialApp(
+        home: Scaffold(body: Center(child: CircularProgressIndicator())),
+      );
+    }
+
+    // If not loading, then userService.isLoggedIn and userService.currentUser are definitive
+    String determinedInitialRoute;
+    if (userService.isLoggedIn) {
+      determinedInitialRoute =
+          userService.currentUser!.isAnonymous ? '/' : '/user_profile';
+    } else {
+      // If logged out, always go to home screen
+      determinedInitialRoute = '/';
+    }
+    print(
+      "MyApp: Determined initialRoute: $determinedInitialRoute for user ${userService.currentUser?.uid}",
+    );
+
     return MaterialApp(
       title: 'Barbershop App',
-      theme: AppTheme.theme, // Use global theme
-      initialRoute: '/',
+      theme: AppTheme.theme,
+      initialRoute: determinedInitialRoute,
       routes: {
         '/': (context) => BackgroundWrapper(child: HomeScreen()),
         '/login': (context) => BackgroundWrapper(child: LoginScreen()),
@@ -58,6 +114,9 @@ class MyApp extends StatelessWidget {
         '/user_profile':
             (context) => BackgroundWrapper(child: UserProfileScreen()),
       },
+      debugShowCheckedModeBanner: false,
     );
   }
 }
+//   static const FirebaseOptions macos = FirebaseOptions(
+//     apiKey: 'AIzaSyC1GXMVTL8m-RqoUMOq-JVpCL9woj-BNog', 
