@@ -1,16 +1,9 @@
 // theme/app_theme.dart
 
-// Put AppColors in its own file: theme/app_colors.dart
-// class AppColors {
-//   static const black = Colors.black;
-//   static const darkGrey = Color(0xFF1A1A1A);
-//   static const grey = Color(0xFF333333);
-//   static const gold = Color(0xFFD4AF37);
-//   static const darkGold = Color(0xFFB4941E);
-// }
+
 
 import 'package:flutter/material.dart';
-import 'app_colors.dart'; // Assuming AppColors is now in a separate file
+import 'app_colors.dart'; 
 
 class AppTheme {
   // Button Styles
@@ -64,7 +57,7 @@ class AppTheme {
 
   static BoxDecoration get selectedBarberContainer => BoxDecoration(
     border: Border.all(color: AppColors.gold, width: 2.5), // Thicker border
-    borderRadius: BorderRadius.circular(45), // Keep if you like this radius
+    borderRadius: BorderRadius.circular(45), //  radius
     // Add a subtle glow or background change for selected
     boxShadow: [
       BoxShadow(
@@ -245,7 +238,7 @@ class AppTheme {
     ),
     scaffoldBackgroundColor: AppColors.black, // Main background for Scaffold
     fontFamily:
-        'Roboto', // Example: Using Roboto font (add to pubspec.yaml and assets)
+        'Roboto', 
     appBarTheme: appBarTheme,
     dialogTheme: dialogTheme,
     elevatedButtonTheme: ElevatedButtonThemeData(
@@ -295,7 +288,7 @@ class AppTheme {
       titleLarge: titleStyle.copyWith(
         fontSize: 22,
         fontWeight: FontWeight.w500,
-      ), // Your titleStyle
+      ), //  titleStyle
       titleMedium: TextStyle(
         color: Colors.white.withAlpha(217),
         fontWeight: FontWeight.w500,
@@ -313,7 +306,7 @@ class AppTheme {
       bodyLarge: lightBodyTextStyle.copyWith(
         fontSize: 16,
         letterSpacing: 0.5,
-      ), // Your lightBodyTextStyle
+      ), //  lightBodyTextStyle
       bodyMedium: lightBodyTextStyle.copyWith(
         fontSize: 14,
         letterSpacing: 0.25,

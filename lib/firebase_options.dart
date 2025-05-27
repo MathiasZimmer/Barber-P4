@@ -6,9 +6,6 @@ import 'package:flutter/foundation.dart'
 
 /// Default [FirebaseOptions] for use with your Firebase apps.
 ///
-/// Example:
-/// ```dart
-/// import 'firebase_options.dart';
 
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
@@ -81,5 +78,4 @@ class DefaultFirebaseOptions {
     storageBucket: 'barberdma-9d67f.firebasestorage.app',
     measurementId: 'G-F3CSWLXYS6',
   );
-
 }
