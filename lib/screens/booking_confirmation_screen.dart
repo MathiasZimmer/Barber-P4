@@ -1,7 +1,6 @@
-// lib/screens/booking_confirmation_screen.dart
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart'; // Make sure this is imported
-import '../main.dart'; // For AppColors if used
+import 'package:provider/provider.dart'; 
+import '../main.dart'; 
 import '../services/booking_service.dart';
 import '../services/user_service.dart';
 import '../theme/app_theme.dart';
@@ -16,32 +15,30 @@ class BookingConfirmationScreen extends StatefulWidget {
 
 class _BookingConfirmationScreenState extends State<BookingConfirmationScreen>
     with SingleTickerProviderStateMixin {
-  // Form keys to manage form state and validation
   final _guestFormKey = GlobalKey<FormState>();
   final _userFormKey = GlobalKey<FormState>();
 
-  // State variables to hold form data
-  // These will be populated by the onSaved callbacks of TextFormFields
-  String? _name; // For both guest name and new user name
-  String? _email; // For new user email (and optionally guest email)
-  String? _password; // For new user password
 
-  // Loading state to handle async operations
+  String? _name; 
+  String? _email; 
+  String? _password; 
+
+  
   bool _isLoading = false;
 
-  // Tab controller for switching between guest and new user forms
+  
   late TabController _tabController;
-  int _currentIndex = 0; // Tracks the current active tab
+  int _currentIndex = 0; 
 
   @override
   void initState() {
     super.initState();
-    // Initialize tab controller with 2 tabs (Guest and Create Account)
+    
     _tabController = TabController(length: 2, vsync: this);
 
-    // Add listener to handle tab changes and update state
+    
     _tabController.addListener(() {
-      // Only update if widget is mounted and tab is actually changing
+      
       if (mounted &&
           (_tabController.indexIsChanging ||
               _tabController.index != _currentIndex)) {
@@ -54,7 +51,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen>
 
   @override
   void dispose() {
-    // Clean up tab controller resources
+    
     _tabController.removeListener(() {});
     _tabController.dispose();
     super.dispose();
@@ -62,61 +59,56 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen>
 
   @override
   Widget build(BuildContext context) {
-    // Override the base class build method to describe this widget’s UI.
+   
 
-    // Use Provider to listen for changes in UserService (e.g., login state).
+    
     final userService = context.watch<UserService>();
-    // Read the current login status from the service.
     final isLoggedIn = userService.isLoggedIn;
 
-    // Retrieve any arguments passed to this route (e.g., booking details).
     final routeArgs = ModalRoute.of(context)?.settings.arguments;
 
-    // If no arguments were passed, or they’re not the expected type, show an error screen.
     if (routeArgs == null || routeArgs is! Map<String, dynamic>) {
       return Scaffold(
         appBar: AppBar(title: Text('Fejl')), // AppBar with "Error" title
         body: Center(
           child: Text('Booking detaljer mangler.'),
-        ), // Inform the user
+        ), 
       );
     }
-    // At this point we know routeArgs is a Map<String, dynamic>, so assign it.
     final args = routeArgs;
 
-    // Build the main booking confirmation UI.
     return Scaffold(
       backgroundColor:
-          AppColors.darkGrey, // Set the scaffold’s background color
+          AppColors.darkGrey, 
       appBar: AppBar(
         title: Text(
           'BEKRÆFT BOOKING',
-          style: AppTheme.appBarTitleStyle, // Use a custom text style
+          style: AppTheme.appBarTitleStyle, 
         ),
-        backgroundColor: AppColors.black, // Dark AppBar
-        elevation: 0, // Remove shadow
+        backgroundColor: AppColors.black, 
+        elevation: 0, 
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0), // Add padding around the content
+        padding: const EdgeInsets.all(16.0), 
         child: Column(
           crossAxisAlignment:
-              CrossAxisAlignment.stretch, // Stretch children horizontally
+              CrossAxisAlignment.stretch, 
           children: [
             Container(
-              padding: const EdgeInsets.all(16.0), // Inner padding
+              padding: const EdgeInsets.all(16.0), 
               decoration:
-                  AppTheme.goldBorderContainer, // Custom border decoration
+                  AppTheme.goldBorderContainer, 
               child: Column(
                 crossAxisAlignment:
-                    CrossAxisAlignment.start, // Align text to the left
+                    CrossAxisAlignment.start, 
                 children: [
                   Text(
                     'Booking Detaljer:',
                     style: AppTheme.titleStyle.copyWith(
                       color: Colors.white,
-                    ), // White title text
+                    ), 
                   ),
-                  const SizedBox(height: 16), // Vertical spacing
+                  const SizedBox(height: 16),
 
                   Row(
                     children: [
@@ -125,7 +117,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen>
                           border: Border.all(
                             color: AppColors.gold.withAlpha(
                               150,
-                            ), // Semi-transparent gold border
+                            ), 
                             width: 1.5,
                           ),
                           shape: BoxShape.circle, // Circular border shape
