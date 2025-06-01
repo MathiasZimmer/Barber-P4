@@ -1,13 +1,12 @@
-// Represents a type of service offered by the barbershop (e.g., haircut, beard trim)
 class Service {
-  final String id; // Unique identifier for the service
-  final String name; // Display name of the service (e.g., "SKINFADE")
-  final int price; // Base price of the service in DKK
-  final int duration; // Estimated duration of the service in minutes
+  final String id; 
+  final String name; 
+  final int price; 
+  final int duration; /minutes
   final List<ServiceOption>?
-  options; // Optional add-ons or variations for the service
+  options; 
 
-  // Constructor for creating a Service object, with required and optional fields
+ 
   Service({
     required this.id,
     required this.name,
@@ -17,30 +16,28 @@ class Service {
   });
 }
 
-// Represents an optional add-on to a service (e.g., adding a beard trim to a haircut)
 class ServiceOption {
-  final String name; // Name/label of the option (e.g., "Med skæg")
-  final int additionalPrice; // Additional cost for this option
+  final String name; 
+  final int additionalPrice; 
   final int
-  additionalDuration; // Extra time this option adds to the base duration (default is 15 minutes)
-
-  // Constructor for creating a ServiceOption
+  additionalDuration; 
+  
   ServiceOption({
     required this.name,
     required this.additionalPrice,
-    this.additionalDuration = 15, // Default value is 15 minutes if not provided
+    this.additionalDuration = 15, 
   });
 }
 
-// List of services offered by the barbershop, with predefined data
+
 final List<Service> services = [
   Service(
-    id: 'skinfade', // Unique ID used internally
-    name: 'SKINFADE', // Display name for customers
-    price: 250, // Base price in DKK
-    duration: 30, // Duration in minutes
+    id: 'skinfade', 
+    name: 'SKINFADE', 
+    price: 250, 
+    duration: 30, 
     options: [
-      ServiceOption(name: 'Med skæg', additionalPrice: 50), // Optional add-on
+      ServiceOption(name: 'Med skæg', additionalPrice: 50), 
     ],
   ),
   Service(
@@ -65,4 +62,4 @@ final List<Service> services = [
     options: [ServiceOption(name: 'Med skæg', additionalPrice: 50)],
   ),
 ];
-// This code defines the data model for services offered by the barbershop.
+
